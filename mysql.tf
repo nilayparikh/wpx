@@ -10,7 +10,6 @@ resource "azurerm_mysql_flexible_server" "main" {
   geo_redundant_backup_enabled = var.mysql.backup.geo_redundant_enabled
 
   delegated_subnet_id = azurerm_subnet.public.id
-  # private_dns_zone_id          = azurerm_private_dns_zone.default.id
 
   sku_name = var.mysql.sku_name
   version  = var.mysql.version
@@ -30,6 +29,14 @@ resource "azurerm_mysql_flexible_server" "main" {
   }
 
   tags = local.default_tags
+}
 
-  # depends_on = [azurerm_private_dns_zone_virtual_network_link.default]
+resource "azurerm_mysql_flexible_database" "main" {
+  for_each = { for wp in var.sites : wp.name => wp }
+
+  name                = each.key
+  resource_group_name = azurerm_resource_group.main.name
+  server_name         = azurerm_mysql_flexible_server.main.name
+  charset             = "utf8mb3"
+  collation           = "utf8mb3_unicode_ci"
 }

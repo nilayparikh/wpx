@@ -28,6 +28,39 @@ variable "region" {
   }
 }
 
+variable "logs" {
+  type = object({
+    sku               = string
+    retention_in_days = number
+  })
+
+  default = {
+    sku               = "Free"
+    retention_in_days = 7
+  }
+
+  validation {
+    condition     = contains(["Free", "PerNode", "Premium", "Standard", "Standalone", "Unlimited", "CapacityReservation", "PerGB2018"], var.logs.sku)
+    error_message = "The sku must be one of the following: Free, PerNode, Premium, Standard, Standalone, Unlimited, CapacityReservation, PerGB2018."
+  }
+
+  validation {
+    condition     = var.logs.sku == "Free" ? contains([7, 30], var.logs.retention_in_days) : (var.logs.retention_in_days >= 7 && var.logs.retention_in_days <= 730)
+    error_message = "If sku is Free, retention_in_days must be 7 or 30. Otherwise, it must be between 7 and 730."
+  }
+}
+
+variable "sites" {
+  type = list(object({
+    name = string
+  }))
+
+  validation {
+    condition     = alltrue([for wp in var.sites : can(regex("^[a-zA-Z0-9_-]+$", wp.name))])
+    error_message = "The name must be alphanumeric."
+  }
+}
+
 variable "mysql" {
   type = object({
     sku_name = string
@@ -90,6 +123,27 @@ variable "mysql" {
   validation {
     condition     = var.mysql.backup.retention_days >= 0
     error_message = "The retention_days must be a non-negative integer."
+  }
+}
+
+variable "container_app" {
+  type = object({
+    storage_share_name  = string
+    storage_share_quota = number
+  })
+  default = {
+    storage_share_name  = "default"
+    storage_share_quota = 5
+  }
+
+  validation {
+    condition     = can(regex("^[a-zA-Z0-9]+$", var.container_app.storage_share_name))
+    error_message = "The storage_share_name must be alphanumeric."
+  }
+
+  validation {
+    condition     = var.container_app.storage_share_quota > 1
+    error_message = "The storage_share_quota must be greater than 1."
   }
 }
 
